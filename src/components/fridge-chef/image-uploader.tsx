@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useRef, useState, type DragEvent } from 'react';
-import { UploadCloud, X, Loader2 } from 'lucide-react';
+import { UploadCloud, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -57,10 +57,10 @@ export function ImageUploader({
   const imageUploaderContent = (
     <div
         className={cn(
-          'relative aspect-video w-full max-w-2xl rounded-lg bg-white cursor-pointer',
+          'relative aspect-video w-full max-w-2xl rounded-lg bg-card',
           'flex flex-col items-center justify-center',
-          'border-2 border-dashed border-border',
-          isDragging && 'border-primary'
+          'border-2 border-dashed border-border transition-colors',
+          isDragging && 'border-primary bg-primary/10'
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -76,61 +76,57 @@ export function ImageUploader({
         />
         
         {isLoading ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background/80 text-foreground">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background/80 text-foreground rounded-lg">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="text-lg font-semibold">Analyzing your fridge...</p>
           </div>
         ) : imagePreview ? (
-          <Dialog>
-            <DialogTrigger asChild>
-               <div className='w-full h-full'>
+          <>
+            <Dialog>
+              <DialogTrigger asChild>
+                 <div className='w-full h-full cursor-zoom-in'>
+                  <Image
+                    src={imagePreview}
+                    alt="Fridge contents"
+                    fill
+                    className="object-contain rounded-lg p-2"
+                  />
+                </div>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl">
                 <Image
                   src={imagePreview}
-                  alt="Fridge contents"
-                  fill
-                  className="object-contain rounded-lg p-2"
+                  alt="Fridge contents enlarged"
+                  width={1200}
+                  height={800}
+                  className="w-full h-auto rounded-md"
                 />
-              </div>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-              <Image
-                src={imagePreview}
-                alt="Fridge contents enlarged"
-                width={1200}
-                height={800}
-                className="w-full h-auto rounded-md"
-              />
-            </DialogContent>
-          </Dialog>
-        ) : (
-          <div className="flex flex-col items-center gap-4 text-center" onClick={() => fileInputRef.current?.click()}>
-            <UploadCloud className="h-12 w-12 text-muted-foreground" />
-            <p className="font-semibold text-foreground">
-              Drag & drop your image here, or browse
-            </p>
-            <p className="text-sm text-muted-foreground">Supports: PNG, JPG</p>
+              </DialogContent>
+            </Dialog>
             <Button
-              variant="secondary"
-              className="mt-4"
+              variant="destructive"
+              size="icon"
+              className="absolute top-2 right-2 z-10 h-8 w-8 rounded-full"
+              onClick={e => {
+                e.stopPropagation();
+                onClear();
+              }}
             >
-              Browse files
+              <X className="h-4 w-4" />
+              <span className="sr-only">Clear image</span>
             </Button>
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-4 text-center p-8 cursor-pointer">
+            <div className="p-4 bg-primary/10 rounded-full">
+                <ImageIcon className="h-12 w-12 text-primary" />
+            </div>
+            <p className="font-semibold text-foreground">
+              <span className="text-primary">Click to upload</span> or drag and drop
+            </p>
+            <p className="text-sm text-muted-foreground">JPG, or PNG (max 5MB)</p>
           </div>
         )}
-         {imagePreview && !isLoading && (
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2 z-10 h-8 w-8 rounded-full"
-                onClick={e => {
-                  e.stopPropagation();
-                  onClear();
-                }}
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Clear image</span>
-              </Button>
-          )}
       </div>
   );
 

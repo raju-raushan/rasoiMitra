@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, ChefHat, Loader2 } from 'lucide-react';
+import { Check, ChefHat, Loader2, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
@@ -64,15 +64,15 @@ export function FridgeContents({
   }
 
   return (
-    <Card className="max-w-4xl mx-auto">
+    <Card className="max-w-4xl mx-auto w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-2xl">
-          <Check className="h-6 w-6 text-primary" />
+          <Sparkles className="h-6 w-6 text-primary" />
           Detected Ingredients
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className='text-muted-foreground mb-4'>Uncheck any ingredients you don&apos;t want to include.</p>
+        <p className='text-muted-foreground mb-4'>Uncheck any ingredients you don&apos;t want to include in the recipes.</p>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
           {analysis.detectedIngredients.map((ingredient, index) => (
             <div key={index} className="flex items-center space-x-2">
@@ -104,6 +104,7 @@ export function FridgeContents({
           size="lg"
           onClick={() => onGenerateRecipes(selectedIngredients)}
           disabled={isGeneratingRecipes || selectedIngredients.length === 0}
+          className="bg-accent hover:bg-accent/90"
         >
           {isGeneratingRecipes ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

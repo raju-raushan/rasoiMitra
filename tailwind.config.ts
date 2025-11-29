@@ -17,7 +17,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'sans-serif'],
+        sans: ['var(--font-pt-sans)', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -87,10 +87,10 @@ export default {
         },
         'accordion-up': {
           from: {
-            height: 'var(--radix-accordion-content-height)',
+            height: '0',
           },
           to: {
-            height: '0',
+            height: 'var(--radix-accordion-content-height)',
           },
         },
       },
