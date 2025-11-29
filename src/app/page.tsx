@@ -8,9 +8,8 @@ import { AppHeader } from '@/components/fridge-chef/header';
 import { ImageUploader } from '@/components/fridge-chef/image-uploader';
 import { FridgeContents } from '@/components/fridge-chef/fridge-contents';
 import { RecipeDisplay } from '@/components/fridge-chef/recipe-display';
-import { placeHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
-import { Instagram, MessageSquare } from 'lucide-react';
+import { Camera } from 'lucide-react';
 
 type FridgeAnalysis = {
   detectedIngredients: string[];
@@ -26,6 +25,7 @@ export default function Home() {
   );
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);
   const { toast } = useToast();
+  const [view, setView] = useState<'upload' | 'recipes'>('upload');
 
   const handleImageUpload = (file: File) => {
     setImageFile(file);
@@ -58,6 +58,13 @@ export default function Home() {
             setAnalysisResult({
                 detectedIngredients: result.ingredients,
             });
+            // Directly generate recipes after detection
+            if (result.ingredients.length > 0) {
+              await handleGenerateRecipes(result.ingredients);
+            } else {
+              setRecipes([]);
+              setView('recipes');
+            }
         } catch (error) {
             console.error(error);
             toast({
@@ -75,11 +82,8 @@ export default function Home() {
 
   const handleGenerateRecipes = async (selectedIngredients: string[]) => {
     if (!selectedIngredients.length) {
-      toast({
-        variant: 'destructive',
-        title: 'No Ingredients Selected',
-        description: 'Please select ingredients to generate recipes.',
-      });
+      setRecipes([]);
+      setView('recipes');
       return;
     }
     setIsGeneratingRecipes(true);
@@ -87,6 +91,7 @@ export default function Home() {
     try {
       const recipeResult = await generateRecipes(selectedIngredients);
       setRecipes(recipeResult);
+      setView('recipes');
     } catch (error) {
       console.error(error);
       toast({
@@ -105,69 +110,56 @@ export default function Home() {
     setImagePreview(null);
     setAnalysisResult(null);
     setRecipes(null);
+    setView('upload');
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col">
+    <div className="flex min-h-screen w-full flex-col bg-gray-50">
       <AppHeader />
       <main className="flex-1">
         <div className="container mx-auto max-w-5xl py-8 px-4">
-          <section className="text-center py-12">
-            <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
-              Scan Your Fridge. Discover Recipes Instantly.
-            </h1>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Upload a photo of your refrigerator and let AI suggest what you can cook.
-            </p>
-          </section>
+          {view === 'upload' && (
+            <>
+              <section className="text-center py-12">
+                <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
+                  Scan Your Fridge. Discover Recipes Instantly.
+                </h1>
+                <p className="mt-4 text-lg text-muted-foreground">
+                  Upload a photo of your refrigerator and let AI suggest what you can cook.
+                </p>
+              </section>
 
-          <section className="mt-8 flex flex-col items-center gap-6">
-            <ImageUploader
-              onImageUpload={handleImageUpload}
-              imagePreview={imagePreview}
-              isLoading={isProcessingImage}
-              onClear={resetState}
-            />
-            <Button
-              size="lg"
-              onClick={handleScanImage}
-              disabled={isProcessingImage || !imagePreview}
-              className="px-10 py-6 text-lg"
-            >
-              {isProcessingImage ? 'Scanning...' : 'Scan'}
-            </Button>
-          </section>
-
-          {analysisResult && !isProcessingImage && (
-            <section id="results" className="mt-12">
-              <FridgeContents
-                analysis={analysisResult}
-                onGenerateRecipes={handleGenerateRecipes}
-                isGeneratingRecipes={isGeneratingRecipes}
-              />
-            </section>
+              <section className="mt-8 flex flex-col items-center gap-6">
+                <ImageUploader
+                  onImageUpload={handleImageUpload}
+                  imagePreview={imagePreview}
+                  isLoading={isProcessingImage}
+                  onClear={resetState}
+                />
+                <Button
+                  size="lg"
+                  onClick={handleScanImage}
+                  disabled={isProcessingImage || !imagePreview}
+                  className="px-10 py-6 text-lg"
+                >
+                  {isProcessingImage ? 'Scanning...' : 'Scan'}
+                </Button>
+              </section>
+            </>
           )}
 
-          <section id="recipes" className="mt-12">
-            <RecipeDisplay recipes={recipes} isLoading={isGeneratingRecipes} />
-          </section>
+          {view === 'recipes' && (
+             <RecipeDisplay
+                recipes={recipes}
+                isLoading={isGeneratingRecipes}
+                onScanAgain={resetState}
+            />
+          )}
+
         </div>
       </main>
-      <footer className="py-8 text-center text-sm text-muted-foreground border-t">
-        <div className="container flex flex-col items-center gap-4">
-          <div className="flex gap-8">
-            <a href="#" className="hover:text-foreground">Privacy Policy</a>
-            <a href="#" className="hover:text-foreground">Terms of Service</a>
-            <a href="#" className="hover:text-foreground">Contact</a>
-          </div>
-          <div className="flex gap-4">
-            <a href="#" className="text-muted-foreground hover:text-foreground">
-              <MessageSquare className="h-5 w-5" />
-            </a>
-            <a href="#" className="text-muted-foreground hover:text-foreground">
-              <Instagram className="h-5 w-5" />
-            </a>
-          </div>
+      <footer className="py-8 text-center text-sm text-muted-foreground border-t bg-white">
+        <div className="container">
           <p>© 2024 Smart Fridge AI. All rights reserved.</p>
         </div>
       </footer>

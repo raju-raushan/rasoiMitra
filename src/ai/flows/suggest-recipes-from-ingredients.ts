@@ -44,7 +44,7 @@ const prompt = ai.definePrompt({
   name: 'suggestRecipesFromIngredientsPrompt',
   input: {schema: SuggestRecipesFromIngredientsInputSchema},
   output: {schema: SuggestRecipesFromIngredientsOutputSchema},
-  prompt: `You are a recipe suggestion AI. Given a list of ingredients, you will suggest 3-5 recipes that the user can cook using only the detected items.
+  prompt: `You are a recipe suggestion AI. Given a list of ingredients, you will suggest 3 recipes that the user can cook using only the detected items.
 
 Each recipe should include:
 - recipe name

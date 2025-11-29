@@ -5,7 +5,6 @@ import { useRef, useState, type DragEvent } from 'react';
 import { UploadCloud, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -58,7 +57,7 @@ export function ImageUploader({
   const imageUploaderContent = (
     <div
         className={cn(
-          'relative aspect-video w-full max-w-2xl rounded-lg bg-card cursor-pointer',
+          'relative aspect-video w-full max-w-2xl rounded-lg bg-white cursor-pointer',
           'flex flex-col items-center justify-center',
           'border-2 border-dashed border-border',
           isDragging && 'border-primary'
@@ -66,7 +65,7 @@ export function ImageUploader({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => !imagePreview && fileInputRef.current?.click()}
       >
         <input
           type="file"
@@ -82,28 +81,29 @@ export function ImageUploader({
             <p className="text-lg font-semibold">Analyzing your fridge...</p>
           </div>
         ) : imagePreview ? (
-          <>
-            <Image
-              src={imagePreview}
-              alt="Fridge contents"
-              fill
-              className="object-contain rounded-lg p-2"
-            />
-             <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2 z-10 h-8 w-8 rounded-full"
-                onClick={e => {
-                  e.stopPropagation();
-                  onClear();
-                }}
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Clear image</span>
-              </Button>
-          </>
+          <Dialog>
+            <DialogTrigger asChild>
+               <div className='w-full h-full'>
+                <Image
+                  src={imagePreview}
+                  alt="Fridge contents"
+                  fill
+                  className="object-contain rounded-lg p-2"
+                />
+              </div>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <Image
+                src={imagePreview}
+                alt="Fridge contents enlarged"
+                width={1200}
+                height={800}
+                className="w-full h-auto rounded-md"
+              />
+            </DialogContent>
+          </Dialog>
         ) : (
-          <div className="flex flex-col items-center gap-4 text-center">
+          <div className="flex flex-col items-center gap-4 text-center" onClick={() => fileInputRef.current?.click()}>
             <UploadCloud className="h-12 w-12 text-muted-foreground" />
             <p className="font-semibold text-foreground">
               Drag & drop your image here, or browse
@@ -117,29 +117,22 @@ export function ImageUploader({
             </Button>
           </div>
         )}
+         {imagePreview && !isLoading && (
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2 z-10 h-8 w-8 rounded-full"
+                onClick={e => {
+                  e.stopPropagation();
+                  onClear();
+                }}
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Clear image</span>
+              </Button>
+          )}
       </div>
   );
 
-  return (
-    <>
-      {imageUrl && !isLoading ? (
-        <Dialog>
-          <DialogTrigger asChild>
-            {imageUploaderContent}
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl">
-            <Image
-              src={imageUrl}
-              alt="Fridge contents enlarged"
-              width={1200}
-              height={800}
-              className="w-full h-auto rounded-md"
-            />
-          </DialogContent>
-        </Dialog>
-      ) : (
-        imageUploaderContent
-      )}
-    </>
-  );
+  return imageUploaderContent;
 }
