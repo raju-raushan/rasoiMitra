@@ -40,10 +40,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <Logo className="h-8 w-8 text-primary" />
             <span className="text-xl font-bold">Fridge Chef</span>
-          </div>
+          </Link>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>

@@ -4,6 +4,7 @@ import { AppHeader } from '@/components/fridge-chef/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { Scan } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
@@ -55,7 +56,10 @@ export default function DashboardPage() {
       
       <div className="flex justify-center">
         <Button asChild size="lg">
-          <Link href="/detect">Get a Recipe</Link>
+          <Link href="/detect">
+            <Scan className="mr-2 h-4 w-4" />
+            Scan Fridge & Get Recipes
+          </Link>
         </Button>
       </div>
 
