@@ -26,7 +26,7 @@ export function RecipeDisplay({ recipes, isLoading }: RecipeDisplayProps) {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h2 className="text-3xl font-bold font-headline">Bon Appétit!</h2>
+        <h2 className="text-3xl font-bold">Bon Appétit!</h2>
         <p className="text-muted-foreground">
           Here are some recipes you can make with your ingredients.
         </p>
@@ -35,33 +35,33 @@ export function RecipeDisplay({ recipes, isLoading }: RecipeDisplayProps) {
         {recipes.map((recipe) => (
           <Card key={recipe.name} className="flex flex-col">
             <CardHeader>
-              <CardTitle className="flex items-start gap-3">
+              <CardTitle className="flex items-start gap-3 text-xl">
                 <ChefHat className="h-6 w-6 text-primary mt-1 shrink-0" />
                 <span className="flex-1">{recipe.name}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col flex-grow">
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground mb-4 flex-grow">
                 {recipe.description}
               </p>
-              <Accordion type="single" collapsible className="w-full flex-grow flex flex-col justify-end">
+              <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="ingredients">
                   <AccordionTrigger>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 font-semibold">
                       <List className="h-4 w-4" /> Ingredients
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
                     <ul className="list-disc space-y-1 pl-5 text-sm">
                       {recipe.ingredients.map((ing, i) => (
-                        <li key={i}>{ing}</li>
+                        <li key={i} className="capitalize">{ing}</li>
                       ))}
                     </ul>
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="steps">
                   <AccordionTrigger>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 font-semibold">
                       <Footprints className="h-4 w-4" /> Steps
                     </div>
                   </AccordionTrigger>
@@ -86,7 +86,7 @@ function RecipeSkeleton() {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h2 className="text-3xl font-bold font-headline">
+        <h2 className="text-3xl font-bold">
           Generating Gourmet Ideas...
         </h2>
         <p className="text-muted-foreground">Our AI chef is working its magic.</p>
