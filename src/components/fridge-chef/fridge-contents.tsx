@@ -1,26 +1,19 @@
 'use client';
 
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, ChefHat, Loader2, ShoppingCart } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Check, ChefHat, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Checkbox } from '../ui/checkbox';
+import { Label } from '../ui/label';
 
 type FridgeAnalysis = {
-  isEmpty: boolean;
-  suggestedShoppingList: string | null;
   detectedIngredients: string[];
 };
 
 interface FridgeContentsProps {
   analysis: FridgeAnalysis;
-  onGenerateRecipes: () => void;
+  onGenerateRecipes: (selectedIngredients: string[]) => void;
   isGeneratingRecipes: boolean;
 }
 
@@ -29,38 +22,38 @@ export function FridgeContents({
   onGenerateRecipes,
   isGeneratingRecipes,
 }: FridgeContentsProps) {
-  const [showEmptyDialog, setShowEmptyDialog] = useState(false);
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (analysis.isEmpty) {
-      setShowEmptyDialog(true);
+  const handleIngredientToggle = (ingredient: string) => {
+    setSelectedIngredients(prev =>
+      prev.includes(ingredient)
+        ? prev.filter(item => item !== ingredient)
+        : [...prev, ingredient]
+    );
+  };
+  
+  const handleSelectAll = () => {
+    if (selectedIngredients.length === analysis.detectedIngredients.length) {
+      setSelectedIngredients([]);
+    } else {
+      setSelectedIngredients(analysis.detectedIngredients);
     }
-  }, [analysis.isEmpty]);
+  }
 
-  if (analysis.isEmpty) {
+
+  if (!analysis.detectedIngredients.length) {
     return (
-      <AlertDialog open={showEmptyDialog} onOpenChange={setShowEmptyDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-6 w-6 text-accent" />
-              Your Fridge is Empty!
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Don&apos;t worry, we&apos;ve prepared a shopping list for you. A copy has
-              been sent to your email.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4">
-            <h4 className="font-semibold mb-2">Suggested Shopping List:</h4>
-            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-              {analysis.suggestedShoppingList?.split(',').map((item, index) => (
-                <li key={index}>{item.trim()}</li>
-              ))}
-            </ul>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Card>
+        <CardHeader>
+          <CardTitle>No Ingredients Detected</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            We couldn&apos;t find any ingredients in the image. Please try a different
+            photo.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -73,17 +66,38 @@ export function FridgeContents({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap gap-2 mb-6">
+        <p className='text-muted-foreground mb-4'>Select the ingredients you want to use for cooking.</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
           {analysis.detectedIngredients.map((ingredient, index) => (
-            <div
-              key={index}
-              className="bg-primary/10 text-primary-foreground border border-primary/20 rounded-full px-3 py-1 text-sm font-medium"
-            >
-              {ingredient}
+            <div key={index} className="flex items-center space-x-2">
+              <Checkbox
+                id={ingredient}
+                checked={selectedIngredients.includes(ingredient)}
+                onCheckedChange={() => handleIngredientToggle(ingredient)}
+              />
+              <Label
+                htmlFor={ingredient}
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                {ingredient}
+              </Label>
             </div>
           ))}
         </div>
-        <Button onClick={onGenerateRecipes} disabled={isGeneratingRecipes}>
+        <div className='flex gap-4'>
+        <Button
+            variant="outline"
+            onClick={handleSelectAll}
+            disabled={isGeneratingRecipes}
+          >
+            {selectedIngredients.length === analysis.detectedIngredients.length
+              ? 'Deselect All'
+              : 'Select All'}
+          </Button>
+        <Button
+          onClick={() => onGenerateRecipes(selectedIngredients)}
+          disabled={isGeneratingRecipes || selectedIngredients.length === 0}
+        >
           {isGeneratingRecipes ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -91,6 +105,7 @@ export function FridgeContents({
           )}
           Generate Recipes
         </Button>
+        </div>
       </CardContent>
     </Card>
   );

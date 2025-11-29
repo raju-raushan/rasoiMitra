@@ -1,12 +1,12 @@
 'use server';
 
 import {
-  detectEmptyFridgeAndSuggestShoppingList,
+  detectIngredientsFromImage,
   suggestRecipesFromIngredients,
 } from '@/ai/flows';
 
 export async function processFridgeImage(photoDataUri: string) {
-  const result = await detectEmptyFridgeAndSuggestShoppingList({
+  const result = await detectIngredientsFromImage({
     photoDataUri,
   });
   return result;

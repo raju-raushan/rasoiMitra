@@ -1,2 +1,2 @@
-export * from './detect-empty-fridge-and-suggest-shopping-list';
+export * from './detect-ingredients-from-image';
 export * from './suggest-recipes-from-ingredients';

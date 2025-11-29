@@ -11,8 +11,6 @@ import { RecipeDisplay } from '@/components/fridge-chef/recipe-display';
 import { placeHolderImages } from '@/lib/placeholder-images';
 
 type FridgeAnalysis = {
-  isEmpty: boolean;
-  suggestedShoppingList: string | null;
   detectedIngredients: string[];
 };
 
@@ -37,30 +35,9 @@ export default function Home() {
 
       try {
         const result = await processFridgeImage(dataUri);
-        if (result.isEmpty) {
-          setAnalysisResult({
-            isEmpty: true,
-            suggestedShoppingList: result.shoppingList,
-            detectedIngredients: [],
-          });
-        } else {
-          // This is a mock implementation as the provided AI flow does not return detected ingredients.
-          const mockIngredients = [
-            'Milk',
-            'Eggs',
-            'Cheese',
-            'Chicken Breast',
-            'Tomatoes',
-            'Lettuce',
-            'Onion',
-            'Garlic',
-          ];
-          setAnalysisResult({
-            isEmpty: false,
-            suggestedShoppingList: null,
-            detectedIngredients: mockIngredients,
-          });
-        }
+        setAnalysisResult({
+          detectedIngredients: result.ingredients,
+        });
       } catch (error) {
         console.error(error);
         toast({
@@ -76,12 +53,12 @@ export default function Home() {
     reader.readAsDataURL(file);
   };
 
-  const handleGenerateRecipes = async () => {
-    if (!analysisResult?.detectedIngredients.length) {
+  const handleGenerateRecipes = async (selectedIngredients: string[]) => {
+    if (!selectedIngredients.length) {
       toast({
         variant: 'destructive',
-        title: 'No Ingredients Found',
-        description: 'Cannot generate recipes without ingredients.',
+        title: 'No Ingredients Selected',
+        description: 'Please select ingredients to generate recipes.',
       });
       return;
     }
@@ -89,7 +66,7 @@ export default function Home() {
     setRecipes(null);
     try {
       const recipeResult = await generateRecipes(
-        analysisResult.detectedIngredients
+        selectedIngredients
       );
       setRecipes(recipeResult);
     } catch (error) {
