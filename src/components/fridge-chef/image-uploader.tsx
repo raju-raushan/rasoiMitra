@@ -47,7 +47,7 @@ export function ImageUploader({
     handleFileSelect(e.dataTransfer.files);
   };
 
-  const imageUploaderContent = (
+  return (
     <div
         className={cn(
           'relative w-full max-w-lg rounded-lg',
@@ -102,3 +102,4 @@ export function ImageUploader({
         )}
       </div>
   );
+}
