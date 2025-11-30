@@ -88,7 +88,7 @@ export default function LoginPage() {
   };
 
   const onSignupSubmit = (values: z.infer<typeof signupSchema>) => {
-    initiateEmailSignUp(auth, values.email, values.password);
+    initiateEmailSignUp(auth, values.email, values.password, values.name);
      toast({
       title: 'Creating account...',
       description: 'You will be redirected shortly.',

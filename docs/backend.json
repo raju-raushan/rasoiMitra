@@ -80,6 +80,41 @@
         "detectedIngredients",
         "imageUri"
       ]
+    },
+    "History": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "History",
+      "type": "object",
+      "description": "Represents a single user activity event.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the History event."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who performed the action."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of when the event occurred.",
+          "format": "date-time"
+        },
+        "action": {
+          "type": "string",
+          "description": "The type of action performed (e.g., 'Generated Recipes')."
+        },
+        "details": {
+          "type": "string",
+          "description": "A description or details of the action."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "timestamp",
+        "action"
+      ]
     }
   },
   "auth": {
@@ -130,6 +165,26 @@
             {
               "name": "recipeId",
               "description": "The ID of the recipe."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/history/{historyId}",
+        "definition": {
+          "entityName": "History",
+          "schema": {
+            "$ref": "#/backend/entities/History"
+          },
+          "description": "Stores a log of user activities.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
+            {
+              "name": "historyId",
+              "description": "The ID of the history event."
             }
           ]
         }

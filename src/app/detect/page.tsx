@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { Recipe } from '@/lib/types';
-import { processFridgeImage, generateRecipes } from '@/app/actions';
+import { processFridgeImage, generateRecipes, saveHistory } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUploader } from '@/components/fridge-chef/image-uploader';
 import { FridgeContents } from '@/components/fridge-chef/fridge-contents';
@@ -89,6 +89,10 @@ export default function DetectPage() {
       if (selectedIngredients.length > 0) {
         const recipeResult = await generateRecipes(selectedIngredients);
         setRecipes(recipeResult);
+        await saveHistory({
+          action: 'Generated Recipes',
+          details: `Used ingredients: ${selectedIngredients.join(', ')}`,
+        });
       } else {
         setRecipes([]); // Set to empty array to show "fridge empty" message
       }
