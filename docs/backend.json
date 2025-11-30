@@ -1,0 +1,140 @@
+{
+  "entities": {
+    "Recipe": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Recipe",
+      "type": "object",
+      "description": "Represents a recipe suggested by the AI based on detected ingredients.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Recipe entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the recipe."
+        },
+        "description": {
+          "type": "string",
+          "description": "A short description of the recipe."
+        },
+        "ingredients": {
+          "type": "array",
+          "description": "An array of ingredients required for the recipe.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "description": "An array of steps to prepare the recipe.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scanId": {
+          "type": "string",
+          "description": "Reference to Scan. (Relationship: Scan 1:N Recipe)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "ingredients",
+        "steps",
+        "scanId"
+      ]
+    },
+    "Scan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Scan",
+      "type": "object",
+      "description": "Represents a scan of the refrigerator contents.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Scan entity."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of when the scan was performed.",
+          "format": "date-time"
+        },
+        "detectedIngredients": {
+          "type": "array",
+          "description": "An array of detected ingredients from the image analysis.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "imageUri": {
+          "type": "string",
+          "description": "The URI of the uploaded image.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "timestamp",
+        "detectedIngredients",
+        "imageUri"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/scans/{scanId}",
+        "definition": {
+          "entityName": "Scan",
+          "schema": {
+            "$ref": "#/backend/entities/Scan"
+          },
+          "description": "Stores scan data for each user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who performed the scan."
+            },
+            {
+              "name": "scanId",
+              "description": "The ID of the scan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/scans/{scanId}/recipes/{recipeId}",
+        "definition": {
+          "entityName": "Recipe",
+          "schema": {
+            "$ref": "#/backend/entities/Recipe"
+          },
+          "description": "Stores recipe data associated with a specific scan for a user. Includes denormalized 'userId' and 'scanId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the scan and recipe."
+            },
+            {
+              "name": "scanId",
+              "description": "The ID of the scan the recipe is associated with."
+            },
+            {
+              "name": "recipeId",
+              "description": "The ID of the recipe."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the Smart Refrigerator web app, focusing on image analysis, recipe suggestions, and empty fridge alerts.  Authorization Independence is achieved by storing Scans under the user's ID, thereby eliminating the need for `get()` calls in security rules. Each user has their own collection of scans and each scan has a list of associated recipes, which means we are taking advantage of path-based ownership. \n\nThe structure supports required QAPs.  Scans and Recipes are segregated into user-specific subcollections, enabling secure `list` operations as only the authenticated user can access their own scans and recipes. This is achieved via path-based ownership, which makes security rules much easier to reason about and debug. There is no need for membership maps.\n"
+  }
+}

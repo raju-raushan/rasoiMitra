@@ -1,0 +1,125 @@
+/**
+ * This ruleset enforces a strict user-ownership model for a smart refrigerator application.
+ *
+ * Core Philosophy:
+ * All data is considered private to the user who created it. Access is granted
+ * only to authenticated users for their own documents. There is no public or
+ * shared data.
+ *
+ * Data Structure:
+ * The data is organized hierarchically under a `/users/{userId}` path. Each user
+ * has a `scans` subcollection, and each scan has a `recipes` subcollection.
+ * This structure uses path-based security to isolate user data effectively.
+ *   - /users/{userId}/scans/{scanId}
+ *   - /users/{userId}/scans/{scanId}/recipes/{recipeId}
+ *
+ * Key Security Decisions:
+ * - Default Deny: All paths are closed by default. Access is explicitly granted on a per-collection basis.
+ * - User Isolation: A user can only read or write data within their own data tree (i.e., where the path's {userId} matches their auth UID).
+ * - No User Listing: The top-level `/users` collection is not readable, preventing enumeration of all application users.
+ * - Relational Integrity: On creation, documents must include a `userId` field that matches the {userId} in the path to ensure data consistency. This field is immutable.
+ *
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for reusable logic
+    // ===================================
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the requested document's owner ID.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    /**
+     * Checks for ownership and ensures the document already exists.
+     * Crucial for preventing writes to non-existent documents on update/delete.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates that the parent Scan document exists.
+     * Ensures Recipes are not orphaned and are always associated with a valid Scan.
+     */
+    function parentScanExists(userId, scanId) {
+      return exists(/databases/$(database)/documents/users/$(userId)/scans/$(scanId));
+    }
+    
+    /**
+     * Validates that the incoming Scan document has a `userId` field
+     * matching the path parameter. This enforces relational integrity.
+     */
+    function hasValidScanDataForCreate(userId) {
+      return request.resource.data.userId == userId;
+    }
+    
+    /**
+     * Ensures the `userId` linking a Scan to its owner cannot be changed after creation.
+     */
+    function isImmutableScanData() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    /**
+     * Validates that an incoming Recipe has `userId` and `scanId` fields
+     * that match the document's path. Enforces relational integrity.
+     */
+    function hasValidRecipeDataForCreate(userId, scanId) {
+      return request.resource.data.userId == userId && request.resource.data.scanId == scanId;
+    }
+    
+    /**
+     * Ensures the `userId` and `scanId` linking a Recipe to its owner and parent
+     * Scan cannot be changed after creation.
+     */
+    function isImmutableRecipeData() {
+      return request.resource.data.userId == resource.data.userId
+          && request.resource.data.scanId == resource.data.scanId;
+    }
+
+    // Collection Rules
+    // ================
+
+    /**
+     * @description Rules for a user's `scans` subcollection.
+     * @path /users/{userId}/scans/{scanId}
+     * @allow (get, list, create, update, delete) for an authenticated user on their OWN scan documents.
+     * @deny (any) access for a user trying to access another user's scans.
+     * @principle Restricts access to a user's own data tree (Path-based Ownership).
+     */
+    match /users/{userId}/scans/{scanId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidScanDataForCreate(userId);
+      allow update: if isExistingOwner(userId) && isImmutableScanData();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for a scan's `recipes` subcollection.
+     * @path /users/{userId}/scans/{scanId}/recipes/{recipeId}
+     * @allow (get, list, create, update, delete) for an authenticated user on their OWN recipe documents.
+     * @deny (create) a recipe for a scan that does not exist.
+     * @principle Enforces strict ownership and relational integrity with the parent scan.
+     */
+    match /users/{userId}/scans/{scanId}/recipes/{recipeId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && parentScanExists(userId, scanId) && hasValidRecipeDataForCreate(userId, scanId);
+      allow update: if isExistingOwner(userId) && isImmutableRecipeData();
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
