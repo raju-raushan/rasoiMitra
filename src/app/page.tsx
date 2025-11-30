@@ -1,9 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Logo } from '@/components/icons/logo';
-import { Camera, Lightbulb, ClipboardList, Moon } from 'lucide-react';
+import { Camera, Lightbulb, ClipboardList } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function LandingPage() {
   return (
@@ -25,10 +26,7 @@ export default function LandingPage() {
           </Link>
         </nav>
         <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon">
-                <Moon className="h-5 w-5" />
-                <span className="sr-only">Toggle theme</span>
-            </Button>
+            <ThemeToggle />
             <Button asChild className="md:hidden">
               <Link href="/detect">Get Recipe</Link>
             </Button>
