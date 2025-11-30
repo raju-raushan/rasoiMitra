@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import type { Recipe } from '@/lib/types';
 import { processFridgeImage, generateRecipes } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -8,8 +8,11 @@ import { ImageUploader } from '@/components/fridge-chef/image-uploader';
 import { FridgeContents } from '@/components/fridge-chef/fridge-contents';
 import { RecipeDisplay } from '@/components/fridge-chef/recipe-display';
 import { Button } from '@/components/ui/button';
-import { Camera, Zap } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, Edit, Frown } from 'lucide-react';
+import { Logo } from '@/components/icons/logo';
+import Link from 'next/link';
 
 type FridgeAnalysis = {
   detectedIngredients: string[];
@@ -24,39 +27,9 @@ export default function DetectPage() {
     null
   );
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);
-  const [view, setView] = useState<'upload' | 'live'>('upload');
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | undefined>(undefined);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+  const [manualIngredients, setManualIngredients] = useState('');
+
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (view === 'live') {
-      const getCameraPermission = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          setHasCameraPermission(true);
-  
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        } catch (error) {
-          console.error('Error accessing camera:', error);
-          setHasCameraPermission(false);
-        }
-      };
-  
-      getCameraPermission();
-
-      return () => {
-        if (videoRef.current && videoRef.current.srcObject) {
-          const stream = videoRef.current.srcObject as MediaStream;
-          stream.getTracks().forEach(track => track.stop());
-        }
-      }
-    }
-  }, [view]);
 
   const handleImageUpload = (file: File) => {
     setImageFile(file);
@@ -69,54 +42,33 @@ export default function DetectPage() {
     };
     reader.readAsDataURL(file);
   };
-
-  const captureFromVideo = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const context = canvas.getContext('2d');
-      if (context) {
-        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-        const dataUri = canvas.toDataURL('image/jpeg');
-        setImagePreview(dataUri);
-        
-        // Convert data URI to File object
-        fetch(dataUri)
-          .then(res => res.blob())
-          .then(blob => {
-            const file = new File([blob], "fridge-capture.jpg", { type: "image/jpeg" });
-            setImageFile(file);
-          });
-        
-        setAnalysisResult(null);
-        setRecipes(null);
-        setView('upload'); // Switch back to upload view to show preview
-      }
-    }
-  };
-
+  
   const handleProcessImage = async () => {
     if (!imageFile && !imagePreview) {
       toast({
         variant: 'destructive',
         title: 'No Image Selected',
-        description: 'Please upload or capture an image to process.',
+        description: 'Please upload an image to process.',
       });
       return;
     }
     
-    // Use imagePreview directly as it's a data URI
     const dataUri = imagePreview;
     if (!dataUri) return;
 
     setIsProcessingImage(true);
+    setAnalysisResult(null);
+    setRecipes(null);
     try {
       const result = await processFridgeImage(dataUri);
       setAnalysisResult({
         detectedIngredients: result.ingredients,
       });
+      if (result.ingredients.length === 0) {
+          // If no ingredients, generate recipes with an empty list
+          // This will trigger the "Your fridge looks empty!" message
+          await handleGenerateRecipes([]);
+      }
     } catch (error) {
       console.error(error);
       toast({
@@ -134,8 +86,12 @@ export default function DetectPage() {
     setIsGeneratingRecipes(true);
     setRecipes(null);
     try {
-      const recipeResult = await generateRecipes(selectedIngredients);
-      setRecipes(recipeResult);
+      if (selectedIngredients.length > 0) {
+        const recipeResult = await generateRecipes(selectedIngredients);
+        setRecipes(recipeResult);
+      } else {
+        setRecipes([]); // Set to empty array to show "fridge empty" message
+      }
     } catch (error) {
       console.error(error);
       toast({
@@ -149,91 +105,133 @@ export default function DetectPage() {
     }
   };
 
+  const handleManualSubmit = async () => {
+    if (!manualIngredients.trim()) {
+        toast({
+            variant: 'destructive',
+            title: 'No Ingredients Entered',
+            description: 'Please type in some ingredients.',
+        });
+        return;
+    }
+    const ingredientsList = manualIngredients.split(',').map(i => i.trim()).filter(Boolean);
+    resetState();
+    setAnalysisResult({ detectedIngredients: ingredientsList });
+    await handleGenerateRecipes(ingredientsList);
+  }
+
   const resetState = () => {
     setImageFile(null);
     setImagePreview(null);
     setAnalysisResult(null);
     setRecipes(null);
+    setManualIngredients('');
   };
 
+  const handleScanAgain = () => {
+    resetState();
+  }
+
   return (
-    <div className="flex-1">
-      <div className="container mx-auto grid max-w-5xl items-start gap-8 px-4 py-8">
-        <div className="flex justify-center gap-4 mb-4">
-          <Button
-            variant={view === 'upload' ? 'default' : 'outline'}
-            onClick={() => setView('upload')}
-          >
-            Upload Image
-          </Button>
-          <Button
-            variant={view === 'live' ? 'default' : 'outline'}
-            onClick={() => setView('live')}
-          >
-            <Camera className="mr-2 h-4 w-4" />
-            Live View
-          </Button>
-        </div>
-        
-        {view === 'upload' && (
-          <div className="flex flex-col gap-4 items-center">
-            <ImageUploader
-              onImageUpload={handleImageUpload}
-              imagePreview={imagePreview}
-              isLoading={isProcessingImage}
-              onClear={resetState}
-            />
-             <Button
-              size="lg"
-              onClick={handleProcessImage}
-              disabled={isProcessingImage || !imagePreview}
-              className="w-full max-w-2xl"
-            >
-              {isProcessingImage ? 'Scanning...' : 'Scan Fridge'}
-              <Zap className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
-        {view === 'live' && (
-          <div className="flex flex-col gap-4 items-center">
-             <div className="relative w-full max-w-2xl aspect-video bg-black rounded-lg">
-                <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
-                <canvas ref={canvasRef} className="hidden" />
-                {hasCameraPermission === false && (
-                    <div className="absolute inset-0 flex items-center justify-center p-4">
-                        <Alert variant="destructive">
-                            <AlertTitle>Camera Access Required</AlertTitle>
-                            <AlertDescription>
-                                Please allow camera access in your browser settings to use the live view feature.
-                            </AlertDescription>
-                        </Alert>
-                    </div>
-                )}
-             </div>
-            <Button size="lg" onClick={captureFromVideo} disabled={!hasCameraPermission} className="w-full max-w-2xl">
-              <Camera className="mr-2 h-4 w-4" />
-              Capture Image
-            </Button>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-8">
-            {analysisResult && (
-              <FridgeContents
-                analysis={analysisResult}
-                onGenerateRecipes={handleGenerateRecipes}
-                isGeneratingRecipes={isGeneratingRecipes}
-              />
-            )}
-            {recipes && (
-              <RecipeDisplay recipes={recipes} isLoading={isGeneratingRecipes} />
-            )}
-            {(isGeneratingRecipes && !recipes) && (
-              <RecipeDisplay recipes={null} isLoading={true} />
-            )}
-          </div>
+    <>
+    <header className="py-4 px-4 md:px-8">
+        <Link href="/" className="flex items-center gap-2">
+            <Logo className="h-8 w-8 text-primary" />
+            <span className="text-xl font-bold">Smart Fridge AI</span>
+        </Link>
+    </header>
+    <main className="container mx-auto max-w-4xl px-4 py-8 flex flex-col items-center gap-8">
+      <div className="text-center">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+          Scan Your Fridge. Discover Recipes Instantly.
+        </h1>
+        <p className="text-muted-foreground mt-2">
+            Upload a photo of your refrigerator or type in your ingredients below.
+        </p>
       </div>
-    </div>
+
+      {!analysisResult && (
+        <>
+            <Card className="w-full p-4 shadow-lg">
+                <CardContent className="p-0 flex flex-col items-center gap-4">
+                    <ImageUploader
+                        onImageUpload={handleImageUpload}
+                        imagePreview={imagePreview}
+                        isLoading={isProcessingImage}
+                        onClear={resetState}
+                    />
+                    <Button
+                        size="lg"
+                        onClick={handleProcessImage}
+                        disabled={isProcessingImage || !imagePreview}
+                        className="w-full max-w-xs"
+                    >
+                        {isProcessingImage ? <Loader2 className="animate-spin" /> : 'Scan'}
+                    </Button>
+                </CardContent>
+            </Card>
+
+            <div className="relative w-full flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <span className="relative bg-background px-2 text-muted-foreground">OR</span>
+            </div>
+
+            <Card className="w-full p-4 shadow-lg">
+                <CardContent className="p-0 flex flex-col items-center gap-4">
+                    <div className="flex items-center gap-2 text-xl font-semibold">
+                        <Edit className="h-6 w-6 text-primary"/>
+                        Manually Enter Ingredients
+                    </div>
+                     <p className="text-sm text-muted-foreground text-center">List the items you have, separated by commas (e.g., chicken, rice, broccoli).</p>
+                    <Textarea 
+                        placeholder="Type your ingredients here..."
+                        className="w-full"
+                        value={manualIngredients}
+                        onChange={(e) => setManualIngredients(e.target.value)}
+                    />
+                    <Button
+                        size="lg"
+                        onClick={handleManualSubmit}
+                        disabled={isGeneratingRecipes}
+                        className="w-full max-w-xs"
+                    >
+                         {isGeneratingRecipes ? <Loader2 className="animate-spin" /> : 'Get Recipes'}
+                    </Button>
+                </CardContent>
+            </Card>
+        </>
+      )}
+
+      {isProcessingImage && (
+        <Card className="w-full p-8 shadow-lg flex flex-col items-center justify-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-lg font-semibold">Analyzing your fridge...</p>
+        </Card>
+      )}
+
+      {analysisResult && (
+          <FridgeContents
+            analysis={analysisResult}
+            onGenerateRecipes={handleGenerateRecipes}
+            isGeneratingRecipes={isGeneratingRecipes}
+            onScanAgain={handleScanAgain}
+          />
+      )}
+      
+      {isGeneratingRecipes && <RecipeDisplay recipes={null} isLoading={true} />}
+
+      {recipes && recipes.length > 0 && <RecipeDisplay recipes={recipes} isLoading={false} />}
+
+      {recipes && recipes.length === 0 && !isGeneratingRecipes && (
+        <Card className="w-full p-8 shadow-lg flex flex-col items-center justify-center gap-4 text-center">
+            <Frown className="h-12 w-12 text-muted-foreground" />
+            <p className="text-lg font-semibold">Your fridge looks empty!</p>
+            <p className="text-sm text-muted-foreground">Sending a grocery list to your email...</p>
+        </Card>
+      )}
+    </main>
+    </>
   );
 }

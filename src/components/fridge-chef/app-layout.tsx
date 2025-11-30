@@ -18,7 +18,6 @@ import {
   BellRing,
   ChefHat,
   LogIn,
-  Home,
 } from 'lucide-react';
 import { AppHeader } from './header';
 import { Logo } from '../icons/logo';
@@ -42,7 +41,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <Link href="/" className="flex items-center gap-2">
             <Logo className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold">Fridge Chef</span>
+            <span className="text-xl font-bold">SmartFridge</span>
           </Link>
         </SidebarHeader>
         <SidebarContent>

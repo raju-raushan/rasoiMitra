@@ -1,5 +1,6 @@
 import { Logo } from '@/components/icons/logo';
 import { SidebarTrigger } from '../ui/sidebar';
+import Link from 'next/link';
 
 export function AppHeader() {
   return (
@@ -9,8 +10,10 @@ export function AppHeader() {
           <SidebarTrigger />
         </div>
         <div className="hidden md:flex items-center gap-2">
-          <Logo className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">Fridge Chef</span>
+            <Link href="/" className="flex items-center gap-2">
+                <Logo className="h-8 w-8 text-primary" />
+                <span className="text-xl font-bold">SmartFridge</span>
+            </Link>
         </div>
       </div>
     </header>
