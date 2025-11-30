@@ -2,14 +2,9 @@
 
 import Image from 'next/image';
 import { useRef, useState, type DragEvent } from 'react';
-import { UploadCloud, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import { UploadCloud, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 
 interface ImageUploaderProps {
   onImageUpload: (file: File) => void;
@@ -52,12 +47,10 @@ export function ImageUploader({
     handleFileSelect(e.dataTransfer.files);
   };
 
-  const imageUrl = imagePreview;
-
   const imageUploaderContent = (
     <div
         className={cn(
-          'relative aspect-video w-full max-w-2xl rounded-lg bg-card',
+          'relative w-full max-w-lg rounded-lg',
           'flex flex-col items-center justify-center',
           'border-2 border-dashed border-border transition-colors',
           isDragging && 'border-primary bg-primary/10'
@@ -75,34 +68,14 @@ export function ImageUploader({
           onChange={e => handleFileSelect(e.target.files)}
         />
         
-        {isLoading ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background/80 text-foreground rounded-lg">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-lg font-semibold">Analyzing your fridge...</p>
-          </div>
-        ) : imagePreview ? (
-          <>
-            <Dialog>
-              <DialogTrigger asChild>
-                 <div className='w-full h-full cursor-zoom-in'>
-                  <Image
-                    src={imagePreview}
-                    alt="Fridge contents"
-                    fill
-                    className="object-contain rounded-lg p-2"
-                  />
-                </div>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl">
-                <Image
-                  src={imagePreview}
-                  alt="Fridge contents enlarged"
-                  width={1200}
-                  height={800}
-                  className="w-full h-auto rounded-md"
-                />
-              </DialogContent>
-            </Dialog>
+        {imagePreview ? (
+          <div className="relative w-full aspect-video">
+            <Image
+              src={imagePreview}
+              alt="Fridge contents preview"
+              fill
+              className="object-contain rounded-lg p-2"
+            />
             <Button
               variant="destructive"
               size="icon"
@@ -111,24 +84,21 @@ export function ImageUploader({
                 e.stopPropagation();
                 onClear();
               }}
+              disabled={isLoading}
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Clear image</span>
             </Button>
-          </>
+          </div>
         ) : (
-          <div className="flex flex-col items-center gap-4 text-center p-8 cursor-pointer">
-            <div className="p-4 bg-primary/10 rounded-full">
-                <ImageIcon className="h-12 w-12 text-primary" />
-            </div>
+          <div className="flex flex-col items-center gap-4 text-center p-8 cursor-pointer w-full">
+            <UploadCloud className="h-12 w-12 text-primary" />
             <p className="font-semibold text-foreground">
-              <span className="text-primary">Click to upload</span> or drag and drop
+              Drag & drop your image here, or browse
             </p>
-            <p className="text-sm text-muted-foreground">JPG, or PNG (max 5MB)</p>
+            <p className="text-sm text-muted-foreground">Supports: PNG, JPG</p>
+            <Button variant="outline" size="sm" className="mt-2" type="button" onClick={() => fileInputRef.current?.click()}>Browse files</Button>
           </div>
         )}
       </div>
   );
-
-  return imageUploaderContent;
-}

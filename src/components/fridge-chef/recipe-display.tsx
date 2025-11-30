@@ -1,86 +1,87 @@
+'use client';
+
 import type { Recipe } from '@/lib/types';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Salad } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, Salad, Search } from 'lucide-react';
+import { useState } from 'react';
 
 interface RecipeDisplayProps {
   recipes: Recipe[] | null;
   isLoading: boolean;
 }
 
+const RecipeCard = ({ recipe }: { recipe: Recipe }) => {
+    const [showMore, setShowMore] = useState(false);
+
+    // Show first 3 steps, or all if less than 3
+    const displayedSteps = showMore ? recipe.steps : recipe.steps.slice(0, 3);
+    const canShowMore = recipe.steps.length > 3;
+
+    return (
+        <Card className="p-6 shadow-lg">
+            <CardContent className="p-0 space-y-4">
+                <div className="flex items-start gap-4">
+                     <div className="p-2 bg-gray-100 rounded-full">
+                        {recipe.name.toLowerCase().includes('salad') ? <Salad className="h-6 w-6 text-primary" /> : <Search className="h-6 w-6 text-primary" />}
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-bold">{recipe.name}</h3>
+                        <p className="text-muted-foreground text-sm">{recipe.description}</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 className="font-semibold mb-1">Ingredients:</h4>
+                    <p className="text-sm text-muted-foreground capitalize">
+                        {recipe.ingredients.join(', ')}
+                    </p>
+                </div>
+                
+                <div>
+                    <h4 className="font-semibold mb-1">Instructions:</h4>
+                    <ol className="list-decimal space-y-1 pl-5 text-sm">
+                        {displayedSteps.map((step, i) => (
+                            <li key={i}>{step}</li>
+                        ))}
+                    </ol>
+                </div>
+
+                {canShowMore && (
+                    <Button variant="link" onClick={() => setShowMore(!showMore)} className="p-0 h-auto">
+                        {showMore ? 'Show Less' : 'Show More'}
+                    </Button>
+                )}
+
+            </CardContent>
+        </Card>
+    )
+}
+
+
 export function RecipeDisplay({ recipes, isLoading }: RecipeDisplayProps) {
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Generating Recipes...</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center p-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-4 text-muted-foreground">Please wait while we whip up some ideas.</p>
-        </CardContent>
+      <Card className="w-full p-8 shadow-lg flex flex-col items-center justify-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-lg font-semibold">Generating Recipes...</p>
+          <p className="text-muted-foreground">Please wait while we whip up some ideas.</p>
       </Card>
     );
   }
 
   if (!recipes || recipes.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No Recipes Found</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            We couldn't generate any recipes from the selected ingredients. Try selecting more items!
-          </p>
-        </CardContent>
-      </Card>
-    );
+    return null; // The parent component handles the empty state
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-            <Salad className="text-primary" />
-            Suggested Recipes
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Accordion type="single" collapsible className="w-full">
-          {recipes.map((recipe, index) => (
-            <AccordionItem value={`item-${index}`} key={recipe.name}>
-              <AccordionTrigger>{recipe.name}</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-4">
-                  <p className="text-muted-foreground">{recipe.description}</p>
-                  <div>
-                    <h4 className="font-semibold mb-2">Ingredients:</h4>
-                    <ul className="list-disc space-y-1 pl-5 text-sm">
-                      {recipe.ingredients.map((ing, i) => (
-                        <li key={i} className="capitalize">{ing}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Steps:</h4>
-                    <ol className="list-decimal space-y-2 pl-5 text-sm">
-                      {recipe.steps.map((step, i) => (
-                        <li key={i}>{step}</li>
-                      ))}
-                    </ol>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
+    <div className="w-full space-y-8">
+        <h2 className="text-center text-3xl font-bold">Recipes You Can Make</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          {recipes.map((recipe) => (
+            <RecipeCard key={recipe.name} recipe={recipe} />
           ))}
-        </Accordion>
-      </CardContent>
-    </Card>
+        </div>
+    </div>
   );
 }

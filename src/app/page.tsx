@@ -1,88 +1,230 @@
 'use client';
 
-import { AppHeader } from '@/components/fridge-chef/header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import type { Recipe } from '@/lib/types';
+import { processFridgeImage, generateRecipes } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import { ImageUploader } from '@/components/fridge-chef/image-uploader';
+import { FridgeContents } from '@/components/fridge-chef/fridge-contents';
+import { RecipeDisplay } from '@/components/fridge-chef/recipe-display';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { Scan } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+} from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, Edit, Frown } from 'lucide-react';
 
-export default function DashboardPage() {
+type FridgeAnalysis = {
+  detectedIngredients: string[];
+};
+
+export default function SmartFridgePage() {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [isGeneratingRecipes, setIsGeneratingRecipes] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<FridgeAnalysis | null>(
+    null
+  );
+  const [recipes, setRecipes] = useState<Recipe[] | null>(null);
+  const [manualIngredients, setManualIngredients] = useState('');
+
+  const { toast } = useToast();
+
+  const handleImageUpload = (file: File) => {
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const dataUri = reader.result as string;
+      setImagePreview(dataUri);
+      setAnalysisResult(null);
+      setRecipes(null);
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  const handleProcessImage = async () => {
+    if (!imageFile && !imagePreview) {
+      toast({
+        variant: 'destructive',
+        title: 'No Image Selected',
+        description: 'Please upload an image to process.',
+      });
+      return;
+    }
+    
+    const dataUri = imagePreview;
+    if (!dataUri) return;
+
+    setIsProcessingImage(true);
+    setAnalysisResult(null);
+    setRecipes(null);
+    try {
+      const result = await processFridgeImage(dataUri);
+      setAnalysisResult({
+        detectedIngredients: result.ingredients,
+      });
+      if (result.ingredients.length === 0) {
+          // If no ingredients, generate recipes with an empty list
+          // This will trigger the "Your fridge looks empty!" message
+          await handleGenerateRecipes([]);
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error Processing Image',
+        description:
+          'There was a problem analyzing your fridge. Please try again.',
+      });
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
+  const handleGenerateRecipes = async (selectedIngredients: string[]) => {
+    setIsGeneratingRecipes(true);
+    setRecipes(null);
+    try {
+      if (selectedIngredients.length > 0) {
+        const recipeResult = await generateRecipes(selectedIngredients);
+        setRecipes(recipeResult);
+      } else {
+        setRecipes([]); // Set to empty array to show "fridge empty" message
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error Generating Recipes',
+        description:
+          'There was a problem creating recipes. Please try again.',
+      });
+    } finally {
+      setIsGeneratingRecipes(false);
+    }
+  };
+
+  const handleManualSubmit = async () => {
+    if (!manualIngredients.trim()) {
+        toast({
+            variant: 'destructive',
+            title: 'No Ingredients Entered',
+            description: 'Please type in some ingredients.',
+        });
+        return;
+    }
+    const ingredientsList = manualIngredients.split(',').map(i => i.trim()).filter(Boolean);
+    resetState();
+    setAnalysisResult({ detectedIngredients: ingredientsList });
+    await handleGenerateRecipes(ingredientsList);
+  }
+
+  const resetState = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setAnalysisResult(null);
+    setRecipes(null);
+    setManualIngredients('');
+  };
+
+  const handleScanAgain = () => {
+    resetState();
+  }
+
   return (
-    <div className="flex flex-col gap-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>About The App</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Fridge Chef is your smart kitchen assistant. It helps you keep track
-            of your fridge inventory, suggests recipes based on what you have,
-            and alerts you about expiring items.
-          </p>
-        </CardContent>
-      </Card>
+    <div className="container mx-auto max-w-4xl px-4 py-8 flex flex-col items-center gap-8">
+      <div className="text-center">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+          Scan Your Fridge. Discover Recipes Instantly.
+        </h1>
+        <p className="text-muted-foreground mt-2">
+            Upload a photo of your refrigerator or type in your ingredients below.
+        </p>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Our Features</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="flex flex-col gap-2 rounded-lg border p-4">
-            <h3 className="font-semibold">Ingredient Detection</h3>
-            <p className="text-sm text-muted-foreground">
-              Use your camera to automatically detect items in your fridge.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 rounded-lg border p-4">
-            <h3 className="font-semibold">Inventory Management</h3>
-            <p className="text-sm text-muted-foreground">
-              Keep a detailed list of your items, including quantity and expiry dates.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 rounded-lg border p-4">
-            <h3 className="font-semibold">Recipe Suggestions</h3>
-            <p className="text-sm text-muted-foreground">
-              Get creative recipe ideas based on the ingredients you already have.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 rounded-lg border p-4">
-            <h3 className="font-semibold">Expiry Alerts</h3>
-            <p className="text-sm text-muted-foreground">
-              Receive notifications for items that are about to expire.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {!analysisResult && (
+        <>
+            <Card className="w-full p-4 shadow-lg">
+                <CardContent className="p-0 flex flex-col items-center gap-4">
+                    <ImageUploader
+                        onImageUpload={handleImageUpload}
+                        imagePreview={imagePreview}
+                        isLoading={isProcessingImage}
+                        onClear={resetState}
+                    />
+                    <Button
+                        size="lg"
+                        onClick={handleProcessImage}
+                        disabled={isProcessingImage || !imagePreview}
+                        className="w-full max-w-xs"
+                    >
+                        {isProcessingImage ? <Loader2 className="animate-spin" /> : 'Scan'}
+                    </Button>
+                </CardContent>
+            </Card>
+
+            <div className="relative w-full flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <span className="relative bg-background px-2 text-muted-foreground">OR</span>
+            </div>
+
+            <Card className="w-full p-4 shadow-lg">
+                <CardContent className="p-0 flex flex-col items-center gap-4">
+                    <div className="flex items-center gap-2 text-xl font-semibold">
+                        <Edit className="h-6 w-6 text-primary"/>
+                        Manually Enter Ingredients
+                    </div>
+                     <p className="text-sm text-muted-foreground text-center">List the items you have, separated by commas (e.g., chicken, rice, broccoli).</p>
+                    <Textarea 
+                        placeholder="Type your ingredients here..."
+                        className="w-full"
+                        value={manualIngredients}
+                        onChange={(e) => setManualIngredients(e.target.value)}
+                    />
+                    <Button
+                        size="lg"
+                        onClick={handleManualSubmit}
+                        disabled={isGeneratingRecipes}
+                        className="w-full max-w-xs"
+                    >
+                         {isGeneratingRecipes ? <Loader2 className="animate-spin" /> : 'Get Recipes'}
+                    </Button>
+                </CardContent>
+            </Card>
+        </>
+      )}
+
+      {isProcessingImage && (
+        <Card className="w-full p-8 shadow-lg flex flex-col items-center justify-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-lg font-semibold">Analyzing your fridge...</p>
+        </Card>
+      )}
+
+      {analysisResult && (
+          <FridgeContents
+            analysis={analysisResult}
+            onGenerateRecipes={handleGenerateRecipes}
+            isGeneratingRecipes={isGeneratingRecipes}
+            onScanAgain={handleScanAgain}
+          />
+      )}
       
-      <div className="flex justify-center">
-        <Button asChild size="lg">
-          <Link href="/detect">
-            <Scan className="mr-2 h-4 w-4" />
-            Scan Fridge & Get Recipes
-          </Link>
-        </Button>
-      </div>
+      {isGeneratingRecipes && <RecipeDisplay recipes={null} isLoading={true} />}
 
-       <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Items Count</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">0</p>
-            <p className="text-sm text-muted-foreground">Total items in inventory</p>
-          </CardContent>
+      {recipes && recipes.length > 0 && <RecipeDisplay recipes={recipes} isLoading={false} />}
+
+      {recipes && recipes.length === 0 && !isGeneratingRecipes && (
+        <Card className="w-full p-8 shadow-lg flex flex-col items-center justify-center gap-4 text-center">
+            <Frown className="h-12 w-12 text-muted-foreground" />
+            <p className="text-lg font-semibold">Your fridge looks empty!</p>
+            <p className="text-sm text-muted-foreground">Sending a grocery list to your email...</p>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Last Updated</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">Never</p>
-            <p className="text-sm text-muted-foreground">Inventory last synced</p>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   );
 }
